@@ -63,18 +63,24 @@ export const Reasoning = memo(
 
     const [hasAutoClosed, setHasAutoClosed] = useState(false);
     const [startTime, setStartTime] = useState<number | null>(null);
+    const [isMounted, setIsMounted] = useState(false);
+
+    // Only run timing logic on client-side after hydration
+    useEffect(() => {
+      setIsMounted(true);
+    }, []);
 
     // Track duration when streaming starts and ends
     useEffect(() => {
+      if (!isMounted) return;
+
       if (isStreaming) {
-        if (startTime === null) {
-          setStartTime(Date.now());
-        }
+        setStartTime((prev) => (prev === null ? Date.now() : prev));
       } else if (startTime !== null) {
         setDuration(Math.ceil((Date.now() - startTime) / MS_IN_S));
         setStartTime(null);
       }
-    }, [isStreaming, startTime, setDuration]);
+    }, [isStreaming, startTime, setDuration, isMounted]);
 
     // Auto-open when streaming starts, auto-close when streaming ends (once only)
     useEffect(() => {

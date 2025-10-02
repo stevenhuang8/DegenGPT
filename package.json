@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack -p 3001",
     "build": "next build --turbopack",
-    "start": "next start"
+    "start": "next start -p 3001"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.30",

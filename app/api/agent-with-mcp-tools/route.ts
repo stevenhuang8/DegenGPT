@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     );
 
     const result = streamText({
-      model: openai("gpt-5"),
+      model: openai("gpt-5.1"),
       system: WEB_SCRAPER_SYSTEM_INSTRUCTIONS,
       messages: modelMessages,
       tools: wrappedTools,

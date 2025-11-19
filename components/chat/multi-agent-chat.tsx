@@ -288,7 +288,7 @@ function ChatInstance({ agent }: { agent: Agent }) {
   return (
     <>
       {/* Chat Messages */}
-      <Conversation className="flex-1 h-0 overflow-hidden">
+      <Conversation className="flex-1 min-h-0">
         <ConversationContent className="space-y-4">
           {messages.length === 0 ? (
             <ConversationEmptyState
@@ -474,7 +474,7 @@ export default function MultiAgentChat() {
   };
 
   return (
-    <div className="flex flex-col h-full max-h-full overflow-hidden">
+    <div className="flex flex-col h-full">
       {/* Agent Selection Header */}
       <div className="flex-shrink-0 border-b bg-card p-4">
         <div className="flex items-center gap-4">

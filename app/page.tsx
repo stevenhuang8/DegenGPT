@@ -10,7 +10,7 @@ export default function Home() {
       <div className="flex flex-col gap-6 relative z-10">
         <Link
           href="/degen-gpt"
-          className="px-16 py-6 bg-gradient-to-r from-purple-600 to-blue-600 border-2 border-purple-400 text-white rounded-2xl shadow-2xl hover:from-purple-700 hover:to-blue-700 hover:border-purple-300 hover:scale-105 hover:shadow-purple-500/50 transition-all duration-300 text-center"
+          className="px-16 py-6 bg-white/15 backdrop-blur-md border-2 border-white/40 text-white rounded-2xl shadow-xl hover:bg-white/25 hover:border-white/60 hover:scale-[1.02] hover:shadow-white/30 transition-all duration-300 text-center"
         >
           <div className="text-3xl font-bold">🎯 DegenGPT</div>
           <div className="text-sm text-white/90 mt-2 font-medium">Multi-Agent Sports Betting Advisor</div>

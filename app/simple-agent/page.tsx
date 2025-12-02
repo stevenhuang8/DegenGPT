@@ -1,4 +1,5 @@
 import ChatAssistant from "@/components/chat/chat-assistant";
+import AgentNavbar from "@/components/nav/agent-navbar";
 
 export default function SimpleAgentPage() {
   return (
@@ -9,6 +10,8 @@ export default function SimpleAgentPage() {
       <div className="absolute inset-0 bg-black/50" />
 
       <div className="relative z-10 h-[90vh] w-full max-w-4xl flex flex-col bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl overflow-hidden">
+        <AgentNavbar />
+
         <div className="border-b border-white/20 p-4 bg-black/20 backdrop-blur-sm">
           <h1 className="text-xl font-semibold text-white">AI Chat Assistant</h1>
         </div>

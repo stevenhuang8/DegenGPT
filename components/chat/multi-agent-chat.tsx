@@ -63,7 +63,7 @@ interface Agent {
 const AGENTS: Agent[] = [
   {
     id: "orchestrator",
-    name: "Main Orchestrator",
+    name: "Main Advisor",
     description: "Intelligent router for all sports and general betting advice",
     icon: "🎯",
     api: "/api/orchestrator",
@@ -289,7 +289,7 @@ function ChatInstance({ agent }: { agent: Agent }) {
     <>
       {/* Chat Messages */}
       <Conversation className="flex-1 min-h-0">
-        <ConversationContent className="space-y-4">
+        <ConversationContent className="space-y-6 p-6 text-base leading-relaxed">
           {messages.length === 0 ? (
             <ConversationEmptyState
               title={`Chat with ${agent.name}`}
@@ -360,7 +360,7 @@ function ChatInstance({ agent }: { agent: Agent }) {
                   const shouldBeExpanded = false;
 
                   return (
-                    <div key={item.id} className="w-full mb-4">
+                    <div key={item.id} className="w-full mb-6">
                       <MemoizedToolCall
                         toolPart={toolPart}
                         displayName={item.displayName || toolPart.type}
@@ -372,8 +372,8 @@ function ChatInstance({ agent }: { agent: Agent }) {
                   const reasoningPart = item.data;
 
                   return (
-                    <div key={item.id} className="w-full mb-4">
-                      <Reasoning isStreaming={isLoading} className="mb-4">
+                    <div key={item.id} className="w-full mb-6">
+                      <Reasoning isStreaming={isLoading} className="mb-6">
                         <ReasoningTrigger />
                         <ReasoningContent>
                           {reasoningPart.text || ""}
@@ -447,10 +447,13 @@ function ChatInstance({ agent }: { agent: Agent }) {
       </Conversation>
 
       {/* Input Area */}
-      <div className="p-4 flex-shrink-0">
+      <div className="p-6 flex-shrink-0">
         <PromptInput onSubmit={handleSubmit}>
           <PromptInputBody>
-            <PromptInputTextarea placeholder={`Ask ${agent.name} anything...`} />
+            <PromptInputTextarea
+              placeholder={`Ask ${agent.name} anything...`}
+              className="min-h-[80px] text-base"
+            />
             <PromptInputToolbar>
               <div />
               <PromptInputSubmit status={isLoading ? "submitted" : undefined} />
@@ -463,56 +466,52 @@ function ChatInstance({ agent }: { agent: Agent }) {
 }
 
 // Main component with agent selection
-export default function MultiAgentChat() {
-  const [selectedAgent, setSelectedAgent] = useState<Agent>(AGENTS[0]);
-
-  const handleAgentChange = (agentId: string) => {
-    const newAgent = AGENTS.find((a) => a.id === agentId);
-    if (newAgent) {
-      setSelectedAgent(newAgent);
-    }
-  };
+export default function MultiAgentChat({
+  selectedAgent: controlledAgent,
+}: {
+  selectedAgent?: Agent;
+} = {}) {
+  const [internalAgent, setInternalAgent] = useState<Agent>(AGENTS[0]);
+  const selectedAgent = controlledAgent || internalAgent;
 
   return (
     <div className="flex flex-col h-full">
-      {/* Agent Selection Header */}
-      <div className="flex-shrink-0 border-b bg-card p-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className={`text-2xl ${selectedAgent.color} p-2 rounded`}>
-              {selectedAgent.icon}
-            </span>
-            <div className="flex-1">
-              <Select value={selectedAgent.id} onValueChange={handleAgentChange}>
-                <SelectTrigger className="w-[280px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {AGENTS.map((agent) => (
-                    <SelectItem key={agent.id} value={agent.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{agent.icon}</span>
-                        <div>
-                          <div className="font-medium">{agent.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {agent.description}
-                          </div>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex-1 text-sm text-muted-foreground">
-            {selectedAgent.description}
-          </div>
-        </div>
-      </div>
-
       {/* Chat Instance - keyed by agent ID to force remount on agent change */}
       <ChatInstance key={selectedAgent.id} agent={selectedAgent} />
     </div>
   );
 }
+
+// Export agent selection components for use in page header
+export function AgentSelector({
+  selectedAgent,
+  onAgentChange,
+}: {
+  selectedAgent: Agent;
+  onAgentChange: (agentId: string) => void;
+}) {
+  return (
+    <Select value={selectedAgent.id} onValueChange={onAgentChange}>
+      <SelectTrigger className="w-[280px] bg-white/10 border-white/20 text-white">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {AGENTS.map((agent) => (
+          <SelectItem key={agent.id} value={agent.id}>
+            <div className="flex items-center gap-2">
+              <span>{agent.icon}</span>
+              <div>
+                <div className="font-medium">{agent.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {agent.description}
+                </div>
+              </div>
+            </div>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+export { AGENTS, type Agent, type AgentType };

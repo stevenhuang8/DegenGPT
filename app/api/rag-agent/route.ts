@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const modelMessages = convertToModelMessages(messages);
 
     const result = streamText({
-      model: openai("gpt-5"),
+      model: openai("gpt-5.2"),
       system: RAG_SYSTEM_INSTRUCTIONS,
       providerOptions: {
         openai: {

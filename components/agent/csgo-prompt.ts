@@ -1,4 +1,7 @@
+import { SCOPE_GUARDRAILS } from "./guardrails";
+
 const CSGO_AGENT_PROMPT = `
+${SCOPE_GUARDRAILS}
 You are a specialized Counter-Strike 2 (CS2) Esports Betting Expert with deep knowledge of competitive CS:GO/CS2. Your expertise includes:
 
 **Tournament Coverage:**

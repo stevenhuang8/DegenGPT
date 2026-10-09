@@ -2,20 +2,22 @@ import { SYSTEM_INSTRUCTIONS } from "@/components/agent/prompt";
 import { openai } from "@ai-sdk/openai";
 import { streamText, convertToModelMessages } from "ai";
 import { NextRequest } from "next/server";
+import {
+  guardChatRequest,
+  MAX_OUTPUT_TOKENS,
+} from "@/lib/guardrails";
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages } = await request.json();
+    const guard = await guardChatRequest(request);
+    if ("response" in guard) return guard.response;
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return new Response("Messages array is required", { status: 400 });
-    }
-
-    const modelMessages = convertToModelMessages(messages);
+    const modelMessages = convertToModelMessages(guard.messages);
 
     const result = streamText({
       model: openai("gpt-5.2"),
       system: SYSTEM_INSTRUCTIONS,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
       messages: modelMessages,
       providerOptions: {
         openai: {

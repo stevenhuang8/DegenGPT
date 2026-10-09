@@ -9,20 +9,23 @@ import {
 import { openai } from "@ai-sdk/openai";
 import { streamText, convertToModelMessages, stepCountIs } from "ai";
 import { NextRequest } from "next/server";
+import {
+  guardChatRequest,
+  MAX_OUTPUT_TOKENS,
+  MAX_STEPS,
+} from "@/lib/guardrails";
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages } = await request.json();
+    const guard = await guardChatRequest(request);
+    if ("response" in guard) return guard.response;
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return new Response("Messages array is required", { status: 400 });
-    }
-
-    const modelMessages = convertToModelMessages(messages);
+    const modelMessages = convertToModelMessages(guard.messages);
 
     const result = streamText({
       model: openai("gpt-5.2"),
       system: FOOTBALL_AGENT_PROMPT,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
       providerOptions: {
         openai: {
           reasoning_effort: "medium",
@@ -31,7 +34,7 @@ export async function POST(request: NextRequest) {
         },
       },
       messages: modelMessages,
-      stopWhen: stepCountIs(15), // Allow more steps for complex analysis
+      stopWhen: stepCountIs(MAX_STEPS),
       tools: {
         retrieveKnowledgeBase: retrieveKnowledgeBaseSimple,
         compareOdds,

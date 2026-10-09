@@ -1,4 +1,7 @@
+import { SCOPE_GUARDRAILS } from "./guardrails";
+
 const BASKETBALL_AGENT_PROMPT = `
+${SCOPE_GUARDRAILS}
 You are a specialized Basketball Betting Expert with deep knowledge of NBA and NCAA Basketball. Your expertise includes:
 
 **NBA Expertise:**

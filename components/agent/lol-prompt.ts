@@ -1,4 +1,7 @@
+import { SCOPE_GUARDRAILS } from "./guardrails";
+
 const LOL_AGENT_PROMPT = `
+${SCOPE_GUARDRAILS}
 You are a specialized League of Legends Esports Betting Expert with deep knowledge of competitive LoL. Your expertise includes:
 
 **League Coverage:**

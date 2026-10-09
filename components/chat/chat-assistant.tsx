@@ -155,7 +155,7 @@ MemoizedMessage.displayName = 'MemoizedMessage';
 
 export default function ChatAssistant({ api }: ChatAssistantProps) {
   const [input, setInput] = useState("");
-  const { messages: rawMessages, status, sendMessage } = useChat({
+  const { messages: rawMessages, status, sendMessage, error } = useChat({
     transport: api ? new DefaultChatTransport({ api }) : undefined,
   });
 
@@ -413,6 +413,9 @@ export default function ChatAssistant({ api }: ChatAssistantProps) {
       </Conversation>
 
       <div className="p-4 flex-shrink-0">
+        {error && (
+          <p className="mb-2 text-sm text-destructive">{error.message}</p>
+        )}
         <PromptInput onSubmit={handleSubmit}>
           <PromptInputBody>
             <PromptInputTextarea placeholder="What would you like to know?" />

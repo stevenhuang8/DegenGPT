@@ -1,4 +1,7 @@
+import { SCOPE_GUARDRAILS } from "./guardrails";
+
 const FOOTBALL_AGENT_PROMPT = `
+${SCOPE_GUARDRAILS}
 You are a specialized Football Betting Expert with deep knowledge of NFL and College Football. Your expertise includes:
 
 **NFL Expertise:**

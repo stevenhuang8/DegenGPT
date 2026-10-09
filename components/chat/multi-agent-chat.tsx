@@ -217,7 +217,7 @@ const toolDisplayNames: Record<string, string> = {
 function ChatInstance({ agent }: { agent: Agent }) {
   const [input, setInput] = useState("");
 
-  const { messages: rawMessages, status, sendMessage } = useChat({
+  const { messages: rawMessages, status, sendMessage, error } = useChat({
     transport: new DefaultChatTransport({ api: agent.api }),
   });
 
@@ -448,6 +448,9 @@ function ChatInstance({ agent }: { agent: Agent }) {
 
       {/* Input Area */}
       <div className="p-6 flex-shrink-0">
+        {error && (
+          <p className="mb-2 text-sm text-destructive">{error.message}</p>
+        )}
         <PromptInput onSubmit={handleSubmit}>
           <PromptInputBody>
             <PromptInputTextarea

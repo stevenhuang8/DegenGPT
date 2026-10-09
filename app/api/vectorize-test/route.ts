@@ -1,9 +1,14 @@
 import { VectorizeService } from "@/lib/retrieval";
 import { NextRequest } from "next/server";
+import { checkRateLimit } from "@/lib/guardrails";
 
 export async function POST(request: NextRequest) {
   try {
-    const { query, numResults = 2 } = await request.json();
+    const limited = checkRateLimit(request);
+    if (limited) return limited;
+
+    const { query, numResults: requested = 2 } = await request.json();
+    const numResults = Math.min(Math.max(Number(requested) || 2, 1), 10);
 
     if (!query) {
       return new Response("Query is required", { status: 400 });

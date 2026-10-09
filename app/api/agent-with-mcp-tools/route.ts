@@ -3,16 +3,18 @@ import { getFirecrawlMCPClient } from "@/lib/mcp";
 import { openai } from "@ai-sdk/openai";
 import { streamText, convertToModelMessages, stepCountIs } from "ai";
 import { NextRequest } from "next/server";
+import {
+  guardChatRequest,
+  MAX_OUTPUT_TOKENS,
+  MAX_STEPS,
+} from "@/lib/guardrails";
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages } = await request.json();
+    const guard = await guardChatRequest(request);
+    if ("response" in guard) return guard.response;
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return new Response("Messages array is required", { status: 400 });
-    }
-
-    const modelMessages = convertToModelMessages(messages);
+    const modelMessages = convertToModelMessages(guard.messages);
 
     // Initialize Firecrawl MCP client
     console.log("🚀 Initializing Firecrawl MCP client...");
@@ -46,9 +48,10 @@ export async function POST(request: NextRequest) {
     const result = streamText({
       model: openai("gpt-5.2"),
       system: WEB_SCRAPER_SYSTEM_INSTRUCTIONS,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
       messages: modelMessages,
       tools: wrappedTools,
-      stopWhen: stepCountIs(10),
+      stopWhen: stepCountIs(MAX_STEPS),
       providerOptions: {
         openai: {
           reasoning_effort: "low",

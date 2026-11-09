@@ -12,16 +12,16 @@ export async function POST(request: NextRequest) {
     const guard = await guardChatRequest(request);
     if ("response" in guard) return guard.response;
 
-    const modelMessages = convertToModelMessages(guard.messages);
+    const modelMessages = await convertToModelMessages(guard.messages);
 
     const result = streamText({
       model: openai("gpt-5.2"),
-      system: SYSTEM_INSTRUCTIONS,
+      instructions: SYSTEM_INSTRUCTIONS,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       messages: modelMessages,
       providerOptions: {
         openai: {
-          reasoning_effort: "low",
+          reasoningEffort: "high",
           textVerbosity: "low",
           reasoningSummary: "detailed",
         },

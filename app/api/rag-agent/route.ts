@@ -1,7 +1,7 @@
 import { RAG_SYSTEM_INSTRUCTIONS } from "@/components/agent/rag-prompt";
 import { retrieveKnowledgeBaseSimple } from "@/components/agent/tools";
 import { openai } from "@ai-sdk/openai";
-import { streamText, convertToModelMessages, stepCountIs } from "ai";
+import { streamText, convertToModelMessages, isStepCount } from "ai";
 import { NextRequest } from "next/server";
 import {
   guardChatRequest,
@@ -14,21 +14,21 @@ export async function POST(request: NextRequest) {
     const guard = await guardChatRequest(request);
     if ("response" in guard) return guard.response;
 
-    const modelMessages = convertToModelMessages(guard.messages);
+    const modelMessages = await convertToModelMessages(guard.messages);
 
     const result = streamText({
       model: openai("gpt-5.2"),
-      system: RAG_SYSTEM_INSTRUCTIONS,
+      instructions: RAG_SYSTEM_INSTRUCTIONS,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       providerOptions: {
         openai: {
-          reasoning_effort: "low",
+          reasoningEffort: "high",
           textVerbosity: "low",
           reasoningSummary: "detailed",
         },
       },
       messages: modelMessages,
-      stopWhen: stepCountIs(MAX_STEPS),
+      stopWhen: isStepCount(MAX_STEPS),
       tools: {
         retrieveKnowledgeBase: retrieveKnowledgeBaseSimple,
       },

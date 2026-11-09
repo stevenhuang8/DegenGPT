@@ -1,7 +1,7 @@
 import { WEB_SCRAPER_SYSTEM_INSTRUCTIONS } from "@/components/agent/web-scraper-prompt";
 import { getFirecrawlMCPClient } from "@/lib/mcp";
 import { openai } from "@ai-sdk/openai";
-import { streamText, convertToModelMessages, stepCountIs } from "ai";
+import { streamText, convertToModelMessages, isStepCount } from "ai";
 import { NextRequest } from "next/server";
 import {
   guardChatRequest,
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const guard = await guardChatRequest(request);
     if ("response" in guard) return guard.response;
 
-    const modelMessages = convertToModelMessages(guard.messages);
+    const modelMessages = await convertToModelMessages(guard.messages);
 
     // Initialize Firecrawl MCP client
     console.log("🚀 Initializing Firecrawl MCP client...");
@@ -47,14 +47,14 @@ export async function POST(request: NextRequest) {
 
     const result = streamText({
       model: openai("gpt-5.2"),
-      system: WEB_SCRAPER_SYSTEM_INSTRUCTIONS,
+      instructions: WEB_SCRAPER_SYSTEM_INSTRUCTIONS,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       messages: modelMessages,
       tools: wrappedTools,
-      stopWhen: stepCountIs(MAX_STEPS),
+      stopWhen: isStepCount(MAX_STEPS),
       providerOptions: {
         openai: {
-          reasoning_effort: "low",
+          reasoningEffort: "high",
           textVerbosity: "low",
           reasoningSummary: "detailed",
         },

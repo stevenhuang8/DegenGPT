@@ -19,12 +19,12 @@ This project strictly uses **pnpm**. Do not use npm or yarn.
 
 ## Architecture
 
-This is a TypeScript Next.js 15 starter template for AI-powered applications with a travel agent theme:
+This is a TypeScript Next.js 16 app that provides AI-powered sports betting and gambling advice:
 
 ### Core Stack
 
-- **Next.js 15** with App Router and Turbopack for fast builds
-- **AI SDK 5** with OpenAI GPT-5 integration and web search tool
+- **Next.js 16** with App Router and Turbopack for fast builds
+- **AI SDK 7** with OpenAI `gpt-5.2` integration and web search tool
 - **Vectorize** for RAG document retrieval from your knowledge base
 - **shadcn/ui** components (New York style, neutral base color)
 - **Tailwind CSS v4** for styling
@@ -37,7 +37,7 @@ This is a TypeScript Next.js 15 starter template for AI-powered applications wit
 - `components/chat/` - Chat interface components
 - `components/ai-elements/` - Vercel AI Elements components
 - `components/agent/` - Agent configuration (system prompts)
-  - `prompt.ts` - Default travel agent system prompt
+  - `prompt.ts` - Default betting advisor system prompt
   - `rag-prompt.ts` - RAG agent system prompt for Sports Betting and Gambling
 - `components/agent/tools/` - AI SDK tools for agent capabilities (knowledge base retrieval, etc.)
 - `components/ui/` - shadcn/ui components
@@ -47,10 +47,10 @@ This is a TypeScript Next.js 15 starter template for AI-powered applications wit
 
 ### AI Integration
 
-- Uses AI SDK 5's `streamText()` for streaming responses
-- Configured for GPT-5 via OpenAI provider with web search tool enabled
+- Uses AI SDK 7's `streamText()` for streaming responses
+- Configured for `gpt-5.2` via OpenAI provider with web search tool enabled, using `high` reasoning effort on all agent routes
 - Vectorize RAG integration via `VectorizeService` in `/lib/retrieval/`
-- System instructions defined in `components/agent/prompt.ts` (travel agent theme)
+- System instructions defined in `components/agent/prompt.ts` (betting advisor)
 - API route at `/api/chat` expects `{ messages: Array }` and returns streaming text
 - RAG-enabled agent at `/api/rag-agent` includes `retrieveKnowledgeBase` tool for knowledge base access
 - use useChat for all streaming handling (read the doc first, always, before writing any streaming code: https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat)
@@ -59,6 +59,7 @@ This is a TypeScript Next.js 15 starter template for AI-powered applications wit
 - Messages from useChat have a `parts` array structure, NOT a simple `content` field
 - Tool calls and sources are supported in the response format
 - Requires environment variables in `.env.local`
+- AI SDK 7 requires Node.js 22 or later
 - Reference: https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-text#streamtext
 
 ### AI SDK Tools
@@ -71,7 +72,7 @@ This documentation is essential for understanding:
 - How tools are called by language models
 - Tool execution flow and lifecycle
 - Tool choice strategies (`auto`, `required`, `none`, specific tool)
-- Multi-step tool calling with `stopWhen` and `stepCountIs()`
+- Multi-step tool calling with `stopWhen` and `isStepCount()`
 - Tool call monitoring and error handling
 - Manual agent loops for complex tool workflows
 
@@ -108,10 +109,10 @@ The returned data is automatically included in the tool call result and streamed
 ```typescript
 // Extract sources from tool results in the UI
 const ragToolCalls = message.parts?.filter(
-  part => part.type === "tool" && part.toolName === "retrieveKnowledgeBase" && part.result?.sources
+  part => part.type === "tool-retrieveKnowledgeBase" && part.state === "output-available" && part.output?.sources
 );
 
-const sources = ragToolCalls?.flatMap(tool => tool.result?.sources || []) || [];
+const sources = ragToolCalls?.flatMap(tool => tool.output?.sources || []) || [];
 ```
 
 **Chat Component with Custom API Endpoint**:
@@ -133,29 +134,54 @@ const { messages, status, sendMessage } = useChat({
 
 1. **Tool Results**: Automatically streamed when tools return data
 2. **Sources**: Can be included in tool results for RAG implementations
-3. **Custom Data Parts**: Can be streamed using `streamData` for more complex scenarios
+3. **Custom Data Parts**: Can be streamed using `createUIMessageStream()` for more complex scenarios
 
 ##### Best Practices
 
 - Keep tool return types simple to avoid TypeScript deep instantiation errors
 - Include sources directly in tool results for automatic streaming
-- Use the `toUIMessageStreamResponse()` method for proper client compatibility
+- Use `toUIMessageStreamResponse()` (or its standalone replacements, see below) for proper client compatibility
 - Tool results are automatically included in the message parts array
 
-#### Current AI SDK API (v5.0.44+)
+#### Current AI SDK API (v7)
 
-**IMPORTANT**: The AI SDK API has evolved. Always use current patterns:
+**IMPORTANT**: The AI SDK API has evolved. Always use current patterns. Migration guides: https://ai-sdk.dev/docs/migration-guides/migration-guide-7-0
 
-##### Multi-Step Tool Execution with `stepCountIs()`
+##### Agent Route Pattern
 
 ```typescript
+const modelMessages = await convertToModelMessages(guard.messages); // async since v6
+
 const result = streamText({
-  model: openai("gpt-5"),
+  model: openai("gpt-5.2"),
+  instructions: SYSTEM_PROMPT, // replaces `system`
   messages: modelMessages,
+  maxOutputTokens: MAX_OUTPUT_TOKENS,
+  providerOptions: {
+    openai: {
+      reasoningEffort: "high", // camelCase: `reasoning_effort` is silently ignored
+      textVerbosity: "low",
+      reasoningSummary: "detailed",
+    },
+  },
   tools: { retrieveKnowledgeBase },
-  stopWhen: stepCountIs(10), // CURRENT API - replaces deprecated maxSteps
+  stopWhen: isStepCount(MAX_STEPS), // replaces `stepCountIs`
 });
+
+return result.toUIMessageStreamResponse();
 ```
+
+`toUIMessageStreamResponse()` still works in v7 but is deprecated in favor of the standalone `toUIMessageStream()` and `createUIMessageStreamResponse()` helpers, and will be removed in the next major version.
+
+##### v7 Rules
+
+- `role: "system"` messages in `messages` are rejected by default. Put system prompts in `instructions`, and do not enable `allowSystemInMessages` for client-supplied messages.
+- Result properties such as `usage`, `toolCalls`, `toolResults` and `sources` cover all steps. Use `finalStep` for the last step only.
+- `LanguageModelUsage` fields moved to `inputTokenDetails.cacheReadTokens` and `outputTokenDetails.reasoningTokens`.
+- Use `onEnd` and `onStepEnd` instead of `onFinish` and `onStepFinish`, and `result.stream` instead of `fullStream`.
+- Tool context uses `contextSchema` and `toolsContext`, not `experimental_context`.
+- Use `createMCPClient` from `@ai-sdk/mcp`, not `experimental_createMCPClient`.
+- Tool part `state` also includes `approval-requested`, `approval-responded` and `output-denied`. Handle them in exhaustive maps and switches.
 
 ##### Tool Choice Strategies
 
@@ -163,71 +189,22 @@ Control how and when tools are called using the `toolChoice` parameter:
 
 ```typescript
 const result = streamText({
-  model: openai("gpt-5"),
+  model: openai("gpt-5.2"),
   messages: modelMessages,
   tools: { retrieveKnowledgeBase },
-  toolChoice: 'auto', // Options: 'auto', 'required', 'none', or specific tool name
-  stopWhen: stepCountIs(5),
+  toolChoice: 'auto', // Options: 'auto', 'required', 'none', or { type: 'tool', toolName }
+  stopWhen: isStepCount(5),
 });
 ```
 
 - **`auto` (default)**: Model decides whether to call tools based on context
 - **`required`**: Model must call at least one tool before responding
 - **`none`**: Disable all tool calls
-- **Specific tool**: Force a particular tool to be called
+- **`{ type: 'tool', toolName }`**: Force a particular tool to be called
 
-##### Converting Tool Results to Source Data Parts
+##### Displaying Sources
 
-**Current Limitation (v5.0.44)**: The `response.steps` API is not yet available in the current version. Sources are currently displayed from tool results embedded in message parts.
-
-```typescript
-// Current working approach (v5.0.44)
-const result = streamText({
-  model: openai("gpt-5"),
-  messages: modelMessages,
-  tools: { retrieveKnowledgeBase },
-  stopWhen: stepCountIs(10),
-});
-
-return result.toUIMessageStreamResponse();
-
-// Frontend extracts sources from tool results in message parts
-// See ChatAssistant component for implementation
-```
-
-**Future Implementation** (when `response.steps` becomes available):
-```typescript
-const stream = createUIMessageStream({
-  execute: async ({ writer }) => {
-    const result = streamText({
-      model: openai("gpt-5"),
-      messages: modelMessages,
-      tools: { retrieveKnowledgeBase },
-      stopWhen: stepCountIs(10),
-    });
-
-    writer.merge(result.toUIMessageStream());
-
-    // This will work when response.steps is available
-    const response = await result.response;
-    for (const step of response.steps || []) {
-      if (step.toolResults) {
-        for (const toolResult of step.toolResults) {
-          if (toolResult.toolName === 'retrieveKnowledgeBase') {
-            for (const source of toolResult.output?.sources || []) {
-              writer.write({
-                type: 'source-url', // Correct type for current version
-                url: source.url,
-                title: source.title
-              });
-            }
-          }
-        }
-      }
-    }
-  }
-});
-```
+Sources are displayed from the tool results embedded in message parts (see the Frontend Access Pattern above and the `ChatAssistant` component). To stream separate source parts instead, use `createUIMessageStream()` and write `source-url` chunks with `sourceId`, `url` and `title`, following https://ai-sdk.dev/docs/ai-sdk-ui/streaming-data.
 
 #### Tool Implementation Guidelines
 
@@ -301,26 +278,19 @@ Display tool execution states using AI Elements:
 
 ```typescript
 // In ChatAssistant component
-{message.parts?.filter(part => part.type === "tool").map((part, i) => {
-  const toolState = part.result
-    ? "output-available"
-    : part.input
-      ? "input-available"
-      : "input-streaming";
-
-  return (
-    <Tool defaultOpen={true}>
-      <ToolHeader type={`tool-${part.toolName}`} state={toolState} />
-      <ToolContent>
-        {part.input && <ToolInput input={part.input} />}
-        {part.result && <ToolOutput output={part.result} />}
-        {toolState === "input-streaming" && (
-          <div>🔍 Searching knowledge base...</div>
-        )}
-      </ToolContent>
-    </Tool>
-  );
-})}
+{message.parts?.filter(part => part.type.startsWith("tool-")).map((part, i) => (
+  // Tool parts are typed `tool-<toolName>` and carry their own `state`
+  <Tool defaultOpen={true} key={part.toolCallId}>
+    <ToolHeader type={part.type} state={part.state} />
+    <ToolContent>
+      {part.input && <ToolInput input={part.input} />}
+      {part.state === "output-available" && <ToolOutput output={part.output} />}
+      {part.state === "input-streaming" && (
+        <div>🔍 Searching knowledge base...</div>
+      )}
+    </ToolContent>
+  </Tool>
+))}
 ```
 
 #### Tool Call Best Practices
@@ -335,7 +305,7 @@ Display tool execution states using AI Elements:
 ### Chat Architecture
 
 - **Frontend**: `ChatAssistant` component uses `useChat` hook from `@ai-sdk/react`
-- **API Route**: Validates messages, converts UIMessages to ModelMessages using `convertToModelMessages()`, streams response via `toTextStreamResponse()`
+- **API Route**: Validates messages with `guardChatRequest()`, converts UIMessages to ModelMessages using `await convertToModelMessages()`, streams response via `toUIMessageStreamResponse()`
 - **Message Format**: Messages have `parts` array with typed parts (text, tool, source-url, etc.), NOT simple `content` field
 - **Sending Messages**: MUST use `sendMessage({ text: "message" })` format - string format does NOT work
 - **Streaming**: Official `useChat` hook handles streaming automatically
@@ -373,6 +343,7 @@ Create `.env.local` with:
 
 ```
 OPENAI_API_KEY=your_openai_api_key_here
+FIRECRAWL_API_KEY=your_firecrawl_api_key
 VECTORIZE_ACCESS_TOKEN=your_vectorize_token
 VECTORIZE_ORG_ID=your_org_id
 VECTORIZE_PIPELINE_ID=your_pipeline_id

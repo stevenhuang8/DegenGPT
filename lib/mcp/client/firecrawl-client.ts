@@ -4,13 +4,13 @@
  * AI SDK MCP Integration: https://ai-sdk.dev/cookbook/node/mcp-tools
  */
 
-import { experimental_createMCPClient } from "@ai-sdk/mcp";
+import { createMCPClient } from "@ai-sdk/mcp";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import type { MCPClientConfig } from "./types";
 
 export class FirecrawlMCPClient {
   private client: Awaited<
-    ReturnType<typeof experimental_createMCPClient>
+    ReturnType<typeof createMCPClient>
   > | null = null;
   private apiKey: string;
   private serverUrl: string;
@@ -36,7 +36,7 @@ export class FirecrawlMCPClient {
 
       const transport = new SSEClientTransport(new URL(this.serverUrl));
 
-      this.client = await experimental_createMCPClient({
+      this.client = await createMCPClient({
         transport,
       });
 

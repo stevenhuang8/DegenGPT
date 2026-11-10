@@ -24,7 +24,7 @@ This is a TypeScript Next.js 16 app that provides AI-powered sports betting and 
 ### Core Stack
 
 - **Next.js 16** with App Router and Turbopack for fast builds
-- **AI SDK 7** with OpenAI `gpt-5.2` integration and web search tool
+- **AI SDK 7** with Claude Opus 5.5 (`claude-opus-5-5`) via `@ai-sdk/anthropic` and web search tool
 - **Vectorize** for RAG document retrieval from your knowledge base
 - **shadcn/ui** components (New York style, neutral base color)
 - **Tailwind CSS v4** for styling
@@ -48,7 +48,7 @@ This is a TypeScript Next.js 16 app that provides AI-powered sports betting and 
 ### AI Integration
 
 - Uses AI SDK 7's `streamText()` for streaming responses
-- Configured for `gpt-5.2` via OpenAI provider with web search tool enabled, using `high` reasoning effort on all agent routes
+- Configured for `claude-opus-5-5` via the Anthropic provider with web search tool enabled, using `high` effort on all agent routes
 - Vectorize RAG integration via `VectorizeService` in `/lib/retrieval/`
 - System instructions defined in `components/agent/prompt.ts` (betting advisor)
 - API route at `/api/chat` expects `{ messages: Array }` and returns streaming text
@@ -153,15 +153,15 @@ const { messages, status, sendMessage } = useChat({
 const modelMessages = await convertToModelMessages(guard.messages); // async since v6
 
 const result = streamText({
-  model: openai("gpt-5.2"),
+  model: anthropic("claude-opus-5-5"),
   instructions: SYSTEM_PROMPT, // replaces `system`
   messages: modelMessages,
   maxOutputTokens: MAX_OUTPUT_TOKENS,
   providerOptions: {
-    openai: {
-      reasoningEffort: "high", // camelCase: `reasoning_effort` is silently ignored
-      textVerbosity: "low",
-      reasoningSummary: "detailed",
+    anthropic: {
+      thinking: { type: "adaptive", display: "summarized" }, // thinking text is empty without `display`
+      effort: "high",
+      fallbacks: "default", // retries a refused request on a fallback model
     },
   },
   tools: { retrieveKnowledgeBase },
@@ -189,18 +189,17 @@ Control how and when tools are called using the `toolChoice` parameter:
 
 ```typescript
 const result = streamText({
-  model: openai("gpt-5.2"),
+  model: anthropic("claude-opus-5-5"),
   messages: modelMessages,
   tools: { retrieveKnowledgeBase },
-  toolChoice: 'auto', // Options: 'auto', 'required', 'none', or { type: 'tool', toolName }
+  toolChoice: 'auto', // Options: 'auto' or 'none' on this model
   stopWhen: isStepCount(5),
 });
 ```
 
 - **`auto` (default)**: Model decides whether to call tools based on context
-- **`required`**: Model must call at least one tool before responding
 - **`none`**: Disable all tool calls
-- **`{ type: 'tool', toolName }`**: Force a particular tool to be called
+- Claude Opus 5.5 rejects `required` and forced-tool choices with a 400, so steer tool use from the prompt instead
 
 ##### Displaying Sources
 
@@ -215,7 +214,9 @@ Sources are displayed from the tool results embedded in message parts (see the F
   - `execute`: Async function performing the tool's action
 - **Current Tools**:
   - `retrieveKnowledgeBase`: Searches the Vectorize knowledge base for relevant information
-  - `web_search`: OpenAI's web search tool for current information
+  - `web_search`: Anthropic's web search tool (`anthropic.tools.webSearch_20260209`) for current information
+  - `web_fetch`: Anthropic's web fetch tool (`anthropic.tools.webFetch_20260209`) for reading full pages found by search
+- **Not connected**: `compareOdds`, `getTeamStats`, `getInjuryReport` and `analyzeTrends` return mock data and must stay out of the routes until they use real sources. See `NOTES/sportsbook-apis.md`.
 
 #### Creating New Tools and Agents
 
@@ -342,7 +343,7 @@ This documentation is essential for understanding how to properly stream source 
 Create `.env.local` with:
 
 ```
-OPENAI_API_KEY=your_openai_api_key_here
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
 FIRECRAWL_API_KEY=your_firecrawl_api_key
 VECTORIZE_ACCESS_TOKEN=your_vectorize_token
 VECTORIZE_ORG_ID=your_org_id

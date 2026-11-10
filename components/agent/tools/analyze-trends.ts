@@ -70,7 +70,8 @@ export const analyzeTrends = tool({
       timeframe: timeframe || "current_season",
       analysis: trendAnalysis,
       confidence:
-        trendAnalysis.record.split("-").length > 1
+        // Not every trend type has a win-loss record
+        trendAnalysis.record?.includes("-")
           ? calculateConfidence(trendAnalysis.record)
           : "Medium",
       recommendation: generateRecommendation(trendAnalysis),

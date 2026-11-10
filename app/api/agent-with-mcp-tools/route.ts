@@ -1,6 +1,6 @@
 import { WEB_SCRAPER_SYSTEM_INSTRUCTIONS } from "@/components/agent/web-scraper-prompt";
 import { getFirecrawlMCPClient } from "@/lib/mcp";
-import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { streamText, convertToModelMessages, isStepCount } from "ai";
 import { NextRequest } from "next/server";
 import {
@@ -46,17 +46,17 @@ export async function POST(request: NextRequest) {
     );
 
     const result = streamText({
-      model: openai("gpt-5.2"),
+      model: anthropic("claude-opus-5-5"),
       instructions: WEB_SCRAPER_SYSTEM_INSTRUCTIONS,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       messages: modelMessages,
       tools: wrappedTools,
       stopWhen: isStepCount(MAX_STEPS),
       providerOptions: {
-        openai: {
-          reasoningEffort: "high",
-          textVerbosity: "low",
-          reasoningSummary: "detailed",
+        anthropic: {
+          thinking: { type: "adaptive", display: "summarized" },
+          effort: "high",
+          fallbacks: "default",
         },
       },
     });

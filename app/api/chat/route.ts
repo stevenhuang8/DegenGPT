@@ -1,5 +1,5 @@
 import { SYSTEM_INSTRUCTIONS } from "@/components/agent/prompt";
-import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { streamText, convertToModelMessages } from "ai";
 import { NextRequest } from "next/server";
 import {
@@ -15,20 +15,23 @@ export async function POST(request: NextRequest) {
     const modelMessages = await convertToModelMessages(guard.messages);
 
     const result = streamText({
-      model: openai("gpt-5.2"),
+      model: anthropic("claude-opus-5-5"),
       instructions: SYSTEM_INSTRUCTIONS,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       messages: modelMessages,
       providerOptions: {
-        openai: {
-          reasoningEffort: "high",
-          textVerbosity: "low",
-          reasoningSummary: "detailed",
+        anthropic: {
+          thinking: { type: "adaptive", display: "summarized" },
+          effort: "high",
+          fallbacks: "default",
         },
       },
       tools: {
-        web_search: openai.tools.webSearch({
-          searchContextSize: "low",
+        web_search: anthropic.tools.webSearch_20260209({
+          maxUses: 3,
+        }),
+        web_fetch: anthropic.tools.webFetch_20260209({
+          maxUses: 3,
         }),
       },
     });

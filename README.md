@@ -1,6 +1,6 @@
 # DegenGPT - AI Sports Betting & Gambling Advisory Platform
 
-Multi-agent AI platform for sports betting analysis and gambling advisory, powered by Next.js 15, TypeScript, AI SDK 5, and GPT-5 with RAG integration.
+Multi-agent AI platform for sports betting analysis and gambling advisory, powered by Next.js 16, TypeScript, AI SDK 7, and Claude Opus 5.5 with RAG integration.
 
 ## Features
 
@@ -23,15 +23,17 @@ Multi-agent AI platform for sports betting analysis and gambling advisory, power
 
 ### Core Capabilities
 
-- Streaming responses with AI SDK 5 `streamText()`
+- Streaming responses with AI SDK 7 `streamText()`
 - Vectorize RAG integration for document retrieval
 - Tool execution monitoring with visual status indicators
 - Source citation display with collapsible views
-- Reasoning token support for extended thinking
+- Thinking summaries from Claude's adaptive thinking
 - shadcn/ui design system with AI Elements components
 - TypeScript with full type safety
 
 ## Setup
+
+Requires Node.js 22 or later and pnpm.
 
 1. Install dependencies:
 
@@ -42,7 +44,7 @@ Multi-agent AI platform for sports betting analysis and gambling advisory, power
 2. Create `.env.local` file with required environment variables:
 
    ```bash
-   OPENAI_API_KEY=your_openai_api_key_here
+   ANTHROPIC_API_KEY=your_anthropic_api_key_here
    VECTORIZE_ACCESS_TOKEN=your_vectorize_token
    VECTORIZE_ORG_ID=your_org_id
    VECTORIZE_PIPELINE_ID=your_pipeline_id
@@ -60,7 +62,7 @@ Open [http://localhost:3001](http://localhost:3001) to access the agent selectio
 
 ### 1. Simple Agent (`/simple-agent`)
 - **API Route**: `/api/chat`
-- **Model**: OpenAI GPT-5 with web search tool
+- **Model**: Claude Opus 5.5 with web search tool
 - **Purpose**: Betting advisory with real-time research
 - **Collects**: Bet amount, bet type, sport, selection details
 - **Research**: Team trends, injuries, line movements, public sentiment
@@ -68,7 +70,7 @@ Open [http://localhost:3001](http://localhost:3001) to access the agent selectio
 
 ### 2. RAG Agent (`/rag-agent`)
 - **API Route**: `/api/rag-agent`
-- **Model**: OpenAI GPT-5 with Vectorize RAG
+- **Model**: Claude Opus 5.5 with Vectorize RAG
 - **Purpose**: Knowledge base-powered sports betting assistant
 - **Tool**: `retrieveKnowledgeBaseSimple` (2 documents per query)
 - **Knowledge**: Betting terminology, strategies, odds, casino games
@@ -76,15 +78,16 @@ Open [http://localhost:3001](http://localhost:3001) to access the agent selectio
 
 ### 3. Agent with MCP Tools (`/agent-with-mcp-tools`)
 - **API Route**: `/api/agent-with-mcp-tools`
-- **Model**: OpenAI GPT-5 with Firecrawl MCP
+- **Model**: Claude Opus 5.5 with Firecrawl MCP
 - **Purpose**: Web scraping and data extraction
 - **Tools**: Dynamic Firecrawl tools (scrape, crawl, search, extract)
 - **Output**: Structured data from websites with execution logging
 
 ## Technologies
 
-- [Next.js 15](https://nextjs.org/) - React framework with App Router and Turbopack
-- [AI SDK 5](https://ai-sdk.dev/) - AI integration toolkit (v5.0.44+)
+- [Next.js 16](https://nextjs.org/) - React framework with App Router and Turbopack
+- [AI SDK 7](https://ai-sdk.dev/) - AI integration toolkit
+- [Claude Opus 5.5](https://www.anthropic.com/claude) - Model, via `@ai-sdk/anthropic`
 - [AI Elements](https://ai-sdk.dev/elements/overview) - Pre-built AI components
 - [Vectorize](https://vectorize.ai/) - RAG document retrieval service
 - [Firecrawl MCP](https://firecrawl.dev/) - Web scraping MCP server
@@ -97,15 +100,15 @@ Open [http://localhost:3001](http://localhost:3001) to access the agent selectio
 ```text
 +---------------------------+         +--------------------------------+         +---------------------------+
 |      Browser UI           |         |    Next.js API Routes          |         |    External Services      |
-| `ChatAssistant`           |         | /api/chat                      |         | - OpenAI GPT-5            |
+| `ChatAssistant`           |         | /api/chat                      |         | - Claude Opus 5.5         |
 |  - useChat() hook         |         | /api/rag-agent                 |         | - Vectorize RAG           |
 |  - AI Elements UI         |         | /api/agent-with-mcp-tools      |         | - Firecrawl MCP           |
 |  - Tool status display    |         |                                |         |                           |
 |  - Source citations       |         | streamText() with:             |         |                           |
-+---------------------------+         |  - GPT-5 model                 |         |                           |
++---------------------------+         |  - Claude Opus 5.5 model       |         |                           |
             |                         |  - Tools (web search, RAG)     |         |                           |
             | 1) sendMessage({ text })|  - Multi-step execution        |         |                           |
-            |------------------------>|  - stopWhen: stepCountIs(10)   |         |                           |
+            |------------------------>|  - stopWhen: isStepCount(6)    |         |                           |
             |                         +--------------------------------+         |                           |
             |                                         |                           |                           |
             |                                         | 2) Call tools/model       |                           |
@@ -191,13 +194,13 @@ sendMessage("This will cause runtime errors");  // ❌
 // Messages use parts[] array, NOT simple content field
 message.parts.forEach(part => {
   if (part.type === "text") console.log(part.text);
-  if (part.type === "tool") console.log(part.toolName, part.result);
-  if (part.type === "reasoning") console.log(part.reasoning);
+  if (part.type.startsWith("tool-")) console.log(part.type, part.state, part.output);
+  if (part.type === "reasoning") console.log(part.text);
 });
 ```
 
 ### Tool Execution
-- Multi-step agent loops with `stopWhen: stepCountIs(10)`
+- Multi-step agent loops with `stopWhen: isStepCount(MAX_STEPS)` (6 steps, set in `lib/guardrails.ts`)
 - Tools automatically stream results to frontend
 - Visual status: input-streaming → input-available → output-available
 - Auto-collapse on success, stay open on errors

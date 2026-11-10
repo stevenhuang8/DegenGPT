@@ -1,11 +1,8 @@
 import { CSGO_AGENT_PROMPT } from "@/components/agent/csgo-prompt";
 import {
   retrieveKnowledgeBaseSimple,
-  compareOdds,
-  getTeamStats,
-  analyzeTrends,
 } from "@/components/agent/tools";
-import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { streamText, convertToModelMessages, isStepCount } from "ai";
 import { NextRequest } from "next/server";
 import {
@@ -22,25 +19,25 @@ export async function POST(request: NextRequest) {
     const modelMessages = await convertToModelMessages(guard.messages);
 
     const result = streamText({
-      model: openai("gpt-5.2"),
+      model: anthropic("claude-opus-5-5"),
       instructions: CSGO_AGENT_PROMPT,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       providerOptions: {
-        openai: {
-          reasoningEffort: "high",
-          textVerbosity: "low",
-          reasoningSummary: "detailed",
+        anthropic: {
+          thinking: { type: "adaptive", display: "summarized" },
+          effort: "high",
+          fallbacks: "default",
         },
       },
       messages: modelMessages,
       stopWhen: isStepCount(MAX_STEPS),
       tools: {
         retrieveKnowledgeBase: retrieveKnowledgeBaseSimple,
-        compareOdds,
-        getTeamStats,
-        analyzeTrends,
-        web_search: openai.tools.webSearch({
-          searchContextSize: "medium",
+        web_search: anthropic.tools.webSearch_20260209({
+          maxUses: 5,
+        }),
+        web_fetch: anthropic.tools.webFetch_20260209({
+          maxUses: 5,
         }),
       },
     });

@@ -1,6 +1,6 @@
 import { RAG_SYSTEM_INSTRUCTIONS } from "@/components/agent/rag-prompt";
 import { retrieveKnowledgeBaseSimple } from "@/components/agent/tools";
-import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { streamText, convertToModelMessages, isStepCount } from "ai";
 import { NextRequest } from "next/server";
 import {
@@ -17,14 +17,14 @@ export async function POST(request: NextRequest) {
     const modelMessages = await convertToModelMessages(guard.messages);
 
     const result = streamText({
-      model: openai("gpt-5.2"),
+      model: anthropic("claude-opus-5-5"),
       instructions: RAG_SYSTEM_INSTRUCTIONS,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       providerOptions: {
-        openai: {
-          reasoningEffort: "high",
-          textVerbosity: "low",
-          reasoningSummary: "detailed",
+        anthropic: {
+          thinking: { type: "adaptive", display: "summarized" },
+          effort: "high",
+          fallbacks: "default",
         },
       },
       messages: modelMessages,

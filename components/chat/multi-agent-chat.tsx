@@ -206,11 +206,8 @@ MemoizedMessage.displayName = "MemoizedMessage";
 // Tool display name mapping
 const toolDisplayNames: Record<string, string> = {
   "tool-retrieveKnowledgeBase": "Knowledge Base Search",
-  "tool-compareOdds": "Comparing Odds",
-  "tool-getTeamStats": "Retrieving Team Stats",
-  "tool-analyzeTrends": "Analyzing Trends",
-  "tool-getInjuryReport": "Checking Injury Report",
   "tool-web_search": "Web Search",
+  "tool-web_fetch": "Reading Web Page",
 };
 
 // Chat instance component

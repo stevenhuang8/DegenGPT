@@ -14,9 +14,15 @@ const MAX_USER_MESSAGE_CHARS = 2000;
 const RATE_LIMIT_MAX_REQUESTS = 20;
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
-// In-memory store: resets on restart and is per server instance.
+// Total model requests allowed per day, across all visitors
+const DAILY_MAX_REQUESTS = 200;
+const DAILY_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+// In-memory stores: reset on restart and are per server instance.
 // Swap for Redis/Upstash if deploying to multiple serverless instances.
 const requestLog = new Map<string, number[]>();
+let dailyCount = 0;
+let dailyWindowStart = 0;
 
 function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for");
@@ -57,6 +63,28 @@ export function checkRateLimit(request: NextRequest): Response | null {
   return null;
 }
 
+function checkDailyLimit(): Response | null {
+  const now = Date.now();
+  if (now - dailyWindowStart >= DAILY_WINDOW_MS) {
+    dailyWindowStart = now;
+    dailyCount = 0;
+  }
+
+  if (dailyCount >= DAILY_MAX_REQUESTS) {
+    const retryAfterSec = Math.ceil(
+      (dailyWindowStart + DAILY_WINDOW_MS - now) / 1000
+    );
+    console.warn("🚫 Daily request limit reached");
+    return new Response(
+      "This demo has reached its daily usage limit. Please try again tomorrow.",
+      { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
+    );
+  }
+
+  dailyCount += 1;
+  return null;
+}
+
 function textLength(message: UIMessage): number {
   return (message.parts ?? []).reduce(
     (sum, part) => sum + (part.type === "text" ? part.text.length : 0),
@@ -71,6 +99,17 @@ function textLength(message: UIMessage): number {
 export async function guardChatRequest(
   request: NextRequest
 ): Promise<{ messages: UIMessage[] } | { response: Response }> {
+  // Requiring JSON forces a CORS preflight on cross-site browser requests.
+  // The routes don't answer preflights, so other sites can't trigger them.
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().startsWith("application/json")) {
+    return {
+      response: new Response("Content-Type must be application/json", {
+        status: 415,
+      }),
+    };
+  }
+
   const limited = checkRateLimit(request);
   if (limited) return { response: limited };
 
@@ -107,6 +146,21 @@ export async function guardChatRequest(
   }
 
   const uiMessages = messages as UIMessage[];
+
+  // The chat UI only sends text from users and has no system messages
+  const invalid = uiMessages.some(
+    (m) =>
+      (m.role !== "user" && m.role !== "assistant") ||
+      !Array.isArray(m.parts) ||
+      (m.role === "user" &&
+        m.parts.some((p) => p.type !== "text" || typeof p.text !== "string"))
+  );
+  if (invalid) {
+    return {
+      response: new Response("Invalid message format", { status: 400 }),
+    };
+  }
+
   const tooLong = uiMessages.some(
     (m) => m.role === "user" && textLength(m) > MAX_USER_MESSAGE_CHARS
   );
@@ -118,6 +172,10 @@ export async function guardChatRequest(
       ),
     };
   }
+
+  // Checked last so rejected requests don't use up the daily budget
+  const overDailyLimit = checkDailyLimit();
+  if (overDailyLimit) return { response: overDailyLimit };
 
   return { messages: uiMessages };
 }

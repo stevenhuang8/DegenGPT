@@ -2,6 +2,9 @@
 export { retrieveKnowledgeBase } from './retrieve-knowledge-base';
 export { retrieveKnowledgeBaseSimple } from './retrieve-knowledge-base-simple';
 
+// Web page reading, restricted to allowed sites
+export { createScrapePage } from './scrape-page';
+
 // Betting analysis tools
 export { compareOdds } from './compare-odds';
 export { getTeamStats } from './get-team-stats';

@@ -5,6 +5,7 @@ import {
 import { anthropic } from "@ai-sdk/anthropic";
 import { streamText, convertToModelMessages, isStepCount } from "ai";
 import { NextRequest } from "next/server";
+import { ALLOWED_RESEARCH_DOMAINS } from "@/lib/allowed-domains";
 import {
   guardChatRequest,
   MAX_OUTPUT_TOKENS,
@@ -35,9 +36,11 @@ export async function POST(request: NextRequest) {
         retrieveKnowledgeBase: retrieveKnowledgeBaseSimple,
         web_search: anthropic.tools.webSearch_20260209({
           maxUses: 3,
+          allowedDomains: ALLOWED_RESEARCH_DOMAINS,
         }),
         web_fetch: anthropic.tools.webFetch_20260209({
           maxUses: 3,
+          allowedDomains: ALLOWED_RESEARCH_DOMAINS,
         }),
       },
     });

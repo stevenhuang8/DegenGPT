@@ -59,10 +59,13 @@ export const SourcesContent = ({
 
 export type SourceProps = ComponentProps<"a">;
 
+// Source URLs come from retrieved documents, and React doesn't block javascript: links
+const isWebUrl = (href?: string) => /^https?:\/\//i.test(href ?? "");
+
 export const Source = ({ href, title, children, ...props }: SourceProps) => (
   <a
     className="flex items-center gap-2"
-    href={href}
+    href={isWebUrl(href) ? href : undefined}
     rel="noreferrer"
     target="_blank"
     {...props}

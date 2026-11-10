@@ -9,6 +9,7 @@ export const MAX_STEPS = 6;
 const MAX_REQUEST_BYTES = 200_000;
 const MAX_MESSAGES = 20;
 const MAX_USER_MESSAGE_CHARS = 2000;
+const MAX_ASSISTANT_MESSAGE_CHARS = 24_000; // about one MAX_OUTPUT_TOKENS step
 
 // Rate limit: requests per IP per window
 const RATE_LIMIT_MAX_REQUESTS = 20;
@@ -177,5 +178,38 @@ export async function guardChatRequest(
   const overDailyLimit = checkDailyLimit();
   if (overDailyLimit) return { response: overDailyLimit };
 
-  return { messages: uiMessages };
+  return { messages: toTextOnlyHistory(uiMessages) };
+}
+
+/**
+ * The client controls this history, so it can't be trusted. Keep only message
+ * text, dropping client-supplied tool results, reasoning and provider metadata.
+ * Tools run on the server within one request, so past turns don't need them.
+ */
+function toTextOnlyHistory(messages: UIMessage[]): UIMessage[] {
+  return messages.flatMap((message) => {
+    const text = message.parts
+      .flatMap((part) =>
+        part?.type === "text" && typeof part.text === "string" ? [part.text] : []
+      )
+      .join("\n\n");
+
+    if (!text) return [];
+
+    return [
+      {
+        id: message.id,
+        role: message.role,
+        parts: [
+          {
+            type: "text" as const,
+            text:
+              message.role === "assistant"
+                ? text.slice(0, MAX_ASSISTANT_MESSAGE_CHARS)
+                : text,
+          },
+        ],
+      },
+    ];
+  });
 }

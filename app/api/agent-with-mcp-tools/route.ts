@@ -1,4 +1,5 @@
 import { WEB_SCRAPER_SYSTEM_INSTRUCTIONS } from "@/components/agent/web-scraper-prompt";
+import { createScrapePage } from "@/components/agent/tools";
 import { getFirecrawlMCPClient } from "@/lib/mcp";
 import { anthropic } from "@ai-sdk/anthropic";
 import { streamText, convertToModelMessages, isStepCount } from "ai";
@@ -21,36 +22,19 @@ export async function POST(request: NextRequest) {
     const firecrawlClient = getFirecrawlMCPClient();
     await firecrawlClient.connect();
 
-    // Retrieve Firecrawl tools
-    const tools = await firecrawlClient.getTools();
-
-    console.log(
-      `🔧 Agent has access to ${Object.keys(tools).length} Firecrawl MCP tools`
-    );
-
-    // Wrap tools to log when they are called
-    const wrappedTools = Object.fromEntries(
-      Object.entries(tools).map(([toolName, toolDef]) => [
-        toolName,
-        {
-          ...toolDef,
-          execute: async (args: any) => {
-            console.log(`\n🔧 Tool called: ${toolName}`);
-            console.log(`   Input:`, JSON.stringify(args, null, 2));
-            const result = await toolDef.execute(args);
-            console.log(`   Output:`, JSON.stringify(result, null, 2));
-            return result;
-          },
-        },
-      ])
-    );
+    // Expose only scraping, restricted to allowed sites
+    const { firecrawl_scrape: firecrawlScrape } =
+      await firecrawlClient.getTools();
+    if (!firecrawlScrape) {
+      throw new Error("Firecrawl scrape tool is not available");
+    }
 
     const result = streamText({
       model: anthropic("claude-opus-5-5"),
       instructions: WEB_SCRAPER_SYSTEM_INSTRUCTIONS,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       messages: modelMessages,
-      tools: wrappedTools,
+      tools: { scrape_page: createScrapePage(firecrawlScrape) },
       stopWhen: isStepCount(MAX_STEPS),
       providerOptions: {
         anthropic: {

@@ -35,11 +35,11 @@ export async function POST(request: NextRequest) {
       tools: {
         retrieveKnowledgeBase: retrieveKnowledgeBaseSimple,
         web_search: anthropic.tools.webSearch_20260209({
-          maxUses: 3,
+          maxUses: 10,
           allowedDomains: ALLOWED_RESEARCH_DOMAINS,
         }),
         web_fetch: anthropic.tools.webFetch_20260209({
-          maxUses: 3,
+          maxUses: 10,
           allowedDomains: ALLOWED_RESEARCH_DOMAINS,
         }),
       },

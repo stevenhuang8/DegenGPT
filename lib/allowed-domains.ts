@@ -1,6 +1,8 @@
 // Sites the agents may read. Page content is untrusted and can carry prompt
 // injection, so research is limited to known sports and betting sources.
 // Subdomains are covered: "espn.com" also allows "www.espn.com".
+// Only list sites that allow Anthropic's crawler: the API rejects the whole
+// request (400) if any allowed domain blocks it (bbc.com and transfermarkt.com do).
 export const ALLOWED_RESEARCH_DOMAINS = [
   // General sports news and scores
   "espn.com",
@@ -8,7 +10,6 @@ export const ALLOWED_RESEARCH_DOMAINS = [
   "foxsports.com",
   "sports.yahoo.com",
   "skysports.com",
-  "bbc.com",
   "sofascore.com",
   "flashscore.com",
   "rotowire.com",
@@ -26,7 +27,6 @@ export const ALLOWED_RESEARCH_DOMAINS = [
   "basketball-reference.com",
   "pro-football-reference.com",
   "fbref.com",
-  "transfermarkt.com",
   "whoscored.com",
   "understat.com",
 
